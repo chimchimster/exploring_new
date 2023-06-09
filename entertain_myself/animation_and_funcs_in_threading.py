@@ -20,7 +20,11 @@ class TreadTasks(threading.Thread):
         self.result = self.func(*self.args)
 
 
-def animate(flag=True, lock=None):
+
+flag = True
+
+
+def animate():
     def get_symbol():
         yield '┃'
 
@@ -35,7 +39,6 @@ def animate(flag=True, lock=None):
         time.sleep(0.1)
         counter += 1
     sys.stdout.write('\rDone')
-    lock.release()
 
 
 def cache(func):
@@ -49,32 +52,29 @@ def cache(func):
             f = func(*args)
             memo[args] = f
             return f
-
+    global flag
+    flag = False
     return wrapper
 
 @cache
 def fib(n=888):
     if n < 2:
         return 1
-    print(n, end=' ')
+
     return fib(n-2) + fib(n-1)
 
 
 def main():
     funcs = [animate, fib]
+    threads = []
+    for func in funcs:
+        threads.append(TreadTasks(func.__name__, func, ()))
 
-    locks = []
-    for _ in range(len(funcs)):
-        lock = _thread.allocate_lock()
-        lock.acquire()
-        locks.append(lock)
+    for thread in threads:
+        thread.start()
 
-    for _ in range(len(funcs)):
-        _thread.start_new_thread(funcs[_], ())
-
-    for _ in range(len(funcs)):
-        while locks[_].locked():
-            pass
+    for thread in threads:
+        thread.join()
 
 
 if __name__ == '__main__':
